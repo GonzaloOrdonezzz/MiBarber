@@ -1,0 +1,12 @@
+com\barberia\app\controller\CorteController.class
+com\barberia\app\BarberiaAppApplication.class
+com\barberia\app\config\CorsConfig$1.class
+com\barberia\app\dto\ActividadDiariaDTO.class
+com\barberia\app\model\EstadoPago.class
+com\barberia\app\repository\CorteRepository.class
+com\barberia\app\service\CorteService.class
+com\barberia\app\config\CorsConfig.class
+com\barberia\app\model\Corte.class
+com\barberia\app\config\DatabaseMigration.class
+com\barberia\app\dto\EstadisticaMensualDTO.class
+com\barberia\app\dto\ResumenSemanalDTO.class

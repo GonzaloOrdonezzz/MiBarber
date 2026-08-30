@@ -1,0 +1,11 @@
+C:\Users\Gonzalo\Desktop\barberiaApp\backend\src\main\java\com\barberia\app\BarberiaAppApplication.java
+C:\Users\Gonzalo\Desktop\barberiaApp\backend\src\main\java\com\barberia\app\config\CorsConfig.java
+C:\Users\Gonzalo\Desktop\barberiaApp\backend\src\main\java\com\barberia\app\config\DatabaseMigration.java
+C:\Users\Gonzalo\Desktop\barberiaApp\backend\src\main\java\com\barberia\app\controller\CorteController.java
+C:\Users\Gonzalo\Desktop\barberiaApp\backend\src\main\java\com\barberia\app\dto\ActividadDiariaDTO.java
+C:\Users\Gonzalo\Desktop\barberiaApp\backend\src\main\java\com\barberia\app\dto\EstadisticaMensualDTO.java
+C:\Users\Gonzalo\Desktop\barberiaApp\backend\src\main\java\com\barberia\app\dto\ResumenSemanalDTO.java
+C:\Users\Gonzalo\Desktop\barberiaApp\backend\src\main\java\com\barberia\app\model\Corte.java
+C:\Users\Gonzalo\Desktop\barberiaApp\backend\src\main\java\com\barberia\app\model\EstadoPago.java
+C:\Users\Gonzalo\Desktop\barberiaApp\backend\src\main\java\com\barberia\app\repository\CorteRepository.java
+C:\Users\Gonzalo\Desktop\barberiaApp\backend\src\main\java\com\barberia\app\service\CorteService.java
