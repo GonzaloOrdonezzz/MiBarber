@@ -901,8 +901,8 @@ export default function App() {
               </div>
 
               {/* Precio y Estado de Pago */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-                <div className="form-group" style={{ marginBottom: 0 }}>
+              <div className="form-row-2col">
+                <div className="form-group">
                   <label className="form-label">Precio ($ ARS) *</label>
                   <input
                     type="number"
@@ -916,7 +916,7 @@ export default function App() {
                   />
                 </div>
 
-                <div className="form-group" style={{ marginBottom: 0 }}>
+                <div className="form-group">
                   <label className="form-label">Estado del Turno</label>
                   <select
                     className="form-input"
@@ -1494,7 +1494,7 @@ export default function App() {
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-row-2col">
                   <div className="form-group">
                     <label className="form-label">Fecha *</label>
                     <input
