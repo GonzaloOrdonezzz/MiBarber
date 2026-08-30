@@ -1,0 +1,70 @@
+# ==========================================
+# MiBarber - .gitignore
+# ==========================================
+
+# --- Node.js / Frontend ---
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+.vercel
+frontend/.vercel
+
+# --- Java / Backend (Maven & Spring Boot) ---
+backend/target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# --- Base de datos local H2 ---
+backend/data/*.db
+backend/data/*.mv.db
+backend/data/*.lock.db
+backend/data/*.trace.db
+
+# --- IDEs y Editores de Código ---
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+*.sublime-project
+*.sublime-workspace
+
+# --- Archivos del Sistema Operativo ---
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+
+# --- Temporales y Logs ---
+*.tmp
+*.bak
+*.swp
+*.swo
+*.log
