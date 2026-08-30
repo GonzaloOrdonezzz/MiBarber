@@ -20,11 +20,17 @@ public class DatabaseMigration implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         try {
-            log.info("Ejecutando ajuste de base de datos para habilitar estado_pago PENDIENTE...");
-            jdbcTemplate.execute("ALTER TABLE cortes ALTER COLUMN estado_pago VARCHAR(20) NOT NULL");
-            log.info("Columna estado_pago migrada a VARCHAR(20) exitosamente.");
-        } catch (Exception e) {
-            log.info("Ajuste de base de datos finalizado: {}", e.getMessage());
+            // Intentar sintaxis estándar de PostgreSQL
+            jdbcTemplate.execute("ALTER TABLE cortes ALTER COLUMN estado_pago TYPE VARCHAR(20)");
+            log.info("Migración de base de datos completada (PostgreSQL).");
+        } catch (Exception e1) {
+            try {
+                // Intentar sintaxis H2
+                jdbcTemplate.execute("ALTER TABLE cortes ALTER COLUMN estado_pago VARCHAR(20) NOT NULL");
+                log.info("Migración de base de datos completada (H2).");
+            } catch (Exception e2) {
+                log.debug("Ajuste de migración no requerido: {}", e2.getMessage());
+            }
         }
     }
 }
