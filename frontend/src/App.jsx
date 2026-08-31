@@ -247,10 +247,10 @@ export default function App() {
     return actividadAnual.reduce((acc, curr) => acc + curr.cantidadCortes, 0);
   }, [actividadAnual]);
 
-  const diasHeatmap = useMemo(() => {
+  const { diasHeatmap, mesesPosiciones, totalSemanas } = useMemo(() => {
     const anio = anioActivoHeatmap;
-    const primerDia = new Date(anio, 0, 1);
-    const ultimoDia = new Date(anio, 11, 31);
+    const primerDia = new Date(anio, 0, 1, 12, 0, 0);
+    const ultimoDia = new Date(anio, 11, 31, 12, 0, 0);
 
     // Ajustar para que la semana empiece en Domingo (0 = Domingo, 1 = Lunes, ..., 6 = Sábado)
     const offsetDomingo = primerDia.getDay();
@@ -282,7 +282,32 @@ export default function App() {
       lista.push({ key: `pad-end-${padEndCount++}`, padding: true });
     }
 
-    return lista;
+    const semanas = Math.ceil(lista.length / 7);
+
+    // Calcular la posición exacta de cada uno de los 12 meses
+    const meses = [];
+    let ultimoMesVisto = -1;
+
+    lista.forEach((item, index) => {
+      if (!item.padding && item.fechaObj) {
+        const mesIndex = item.fechaObj.getMonth();
+        if (mesIndex !== ultimoMesVisto) {
+          const colIndex = Math.floor(index / 7) + 1; // 1-indexed para CSS Grid
+          meses.push({
+            mes: mesIndex,
+            nombre: MESES_ABR[mesIndex],
+            columnaInicio: colIndex
+          });
+          ultimoMesVisto = mesIndex;
+        }
+      }
+    });
+
+    return {
+      diasHeatmap: lista,
+      mesesPosiciones: meses,
+      totalSemanas: semanas
+    };
   }, [anioActivoHeatmap, mapaActividad]);
 
   // Nivel de intensidad (0: 0 cortes, 1: 1-3, 2: 4-7, 3: 8+)
@@ -586,11 +611,23 @@ export default function App() {
 
       <div className="heatmap-container">
         <div className="heatmap-wrapper">
-          {/* Nombres de los meses */}
-          <div className="heatmap-months">
-            {MESES_ABR.map((m) => (
-              <span key={m}>{m}</span>
-            ))}
+          {/* Fila superior de nombres de meses alineados exactamente con cada columna */}
+          <div className="heatmap-header-row">
+            <div className="heatmap-corner-spacer" />
+            <div
+              className="heatmap-months-grid"
+              style={{ gridTemplateColumns: `repeat(${totalSemanas}, 13px)` }}
+            >
+              {mesesPosiciones.map((item) => (
+                <span
+                  key={item.mes}
+                  className="heatmap-month-label"
+                  style={{ gridColumnStart: item.columnaInicio }}
+                >
+                  {item.nombre}
+                </span>
+              ))}
+            </div>
           </div>
 
           <div className="heatmap-body">
@@ -605,8 +642,11 @@ export default function App() {
               <span>Sáb</span>
             </div>
 
-            {/* Cuadrícula CSS Grid de 53 columnas x 7 filas */}
-            <div className="heatmap-grid">
+            {/* Cuadrícula CSS Grid de columnas x 7 filas */}
+            <div
+              className="heatmap-grid"
+              style={{ gridTemplateColumns: `repeat(${totalSemanas}, 13px)` }}
+            >
               {diasHeatmap.map((dia) => (
                 <div
                   key={dia.key}
