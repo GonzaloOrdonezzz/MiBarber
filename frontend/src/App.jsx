@@ -66,7 +66,12 @@ export default function App() {
   const [filtroPago, setFiltroPago] = useState('DEUDORES'); // 'TODOS' | 'DEUDORES' | 'PENDIENTES' | 'PAGADOS'
   const [listaPagos, setListaPagos] = useState([]);
   const [totalesGlobales, setTotalesGlobales] = useState({
+    totalMesCobrado: 0,
+    diezmoMes: 0,
+    cantidadPagadosMes: 0,
+    nombreMesActual: '',
     totalHistoricoCobrado: 0,
+    diezmoHistorico: 0,
     totalHistoricoDeuda: 0,
     totalHistoricoPendiente: 0,
     diezmo: 0
@@ -1231,7 +1236,7 @@ export default function App() {
       {/* CONTENIDO 2: VISTA DE PAGOS & DEUDORES */}
       {activeTab === 'pagos' && (
         <main>
-          {/* Métricas Globales de Pagos (Incluye la Décima Parte 10% aquí) */}
+          {/* Métricas de Pagos y Finanzas del Mes (Se renueva cada mes) */}
           <div className="stats-grid">
             <div className="stat-card deuda">
               <div className="stat-header">
@@ -1246,26 +1251,30 @@ export default function App() {
 
             <div className="stat-card cobrado">
               <div className="stat-header">
-                <span className="stat-title">Total Histórico Cobrado</span>
+                <span className="stat-title">Total Cobrado ({totalesGlobales.nombreMesActual || 'Este Mes'})</span>
                 <div className="stat-icon-wrapper">
                   <DollarSign size={20} />
                 </div>
               </div>
-              <div className="stat-value">{formatMoneda(totalesGlobales.totalHistoricoCobrado || 0)}</div>
-              <div className="stat-footer">Ingresos totales cobrados</div>
+              <div className="stat-value">{formatMoneda(totalesGlobales.totalMesCobrado || 0)}</div>
+              <div className="stat-footer">
+                {totalesGlobales.cantidadPagadosMes !== undefined
+                  ? `${totalesGlobales.cantidadPagadosMes} cortes cobrados en ${totalesGlobales.nombreMesActual || 'el mes'}`
+                  : 'Ingresos cobrados este mes'}
+              </div>
             </div>
 
             <div className="stat-card diezmo">
               <div className="stat-header">
-                <span className="stat-title">10% Décima Parte</span>
+                <span className="stat-title">10% Décima Parte ({totalesGlobales.nombreMesActual || 'Este Mes'})</span>
                 <div className="stat-icon-wrapper">
                   <Percent size={20} />
                 </div>
               </div>
               <div className="stat-value">
-                {formatMoneda(totalesGlobales.diezmo || ((totalesGlobales.totalHistoricoCobrado || 0) * 0.10))}
+                {formatMoneda(totalesGlobales.diezmoMes !== undefined ? totalesGlobales.diezmoMes : ((totalesGlobales.totalMesCobrado || 0) * 0.10))}
               </div>
-              <div className="stat-footer">10% de lo cobrado históricamente</div>
+              <div className="stat-footer">10% de lo cobrado en {totalesGlobales.nombreMesActual || 'el mes actual'}</div>
             </div>
 
             <div className="stat-card turnos-pendientes">

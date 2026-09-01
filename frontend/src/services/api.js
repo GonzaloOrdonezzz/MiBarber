@@ -370,7 +370,7 @@ export const api = {
   async getTotales() {
     const { data, error } = await supabase
       .from('cortes')
-      .select('precio, estado_pago');
+      .select('precio, estado_pago, fecha');
 
     if (error) {
       console.error('Error getTotales:', error);
@@ -378,25 +378,57 @@ export const api = {
     }
 
     const cortes = data || [];
-    const totalHistoricoCobrado = cortes
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const monthPrefix = `${currentYear}-${currentMonth}`;
+
+    const MESES_NOMBRES = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    const nombreMesActual = MESES_NOMBRES[now.getMonth()];
+
+    // Filtrar cortes del mes en curso
+    const cortesMes = cortes.filter(c => c.fecha && c.fecha.startsWith(monthPrefix));
+
+    // Cobrado en el mes actual (se renueva automáticamente cada mes)
+    const totalMesCobrado = cortesMes
       .filter(c => c.estado_pago === 'PAGADO')
       .reduce((sum, c) => sum + Number(c.precio || 0), 0);
 
+    const cantidadPagadosMes = cortesMes.filter(c => c.estado_pago === 'PAGADO').length;
+
+    // 10% Décima parte del mes actual
+    const diezmoMes = Math.round(totalMesCobrado * 0.10 * 100) / 100;
+
+    // Deuda total acumulada (Quiénes deben)
     const totalHistoricoDeuda = cortes
       .filter(c => c.estado_pago === 'NO_PAGADO')
       .reduce((sum, c) => sum + Number(c.precio || 0), 0);
 
+    // Turnos pendientes por realizar
     const totalHistoricoPendiente = cortes
       .filter(c => c.estado_pago === 'PENDIENTE')
       .reduce((sum, c) => sum + Number(c.precio || 0), 0);
 
-    const diezmo = Math.round(totalHistoricoCobrado * 0.10 * 100) / 100;
+    // Histórico general
+    const totalHistoricoCobrado = cortes
+      .filter(c => c.estado_pago === 'PAGADO')
+      .reduce((sum, c) => sum + Number(c.precio || 0), 0);
+
+    const diezmoHistorico = Math.round(totalHistoricoCobrado * 0.10 * 100) / 100;
 
     return {
+      totalMesCobrado,
+      diezmoMes,
+      cantidadPagadosMes,
+      nombreMesActual,
       totalHistoricoCobrado,
+      diezmoHistorico,
       totalHistoricoDeuda,
       totalHistoricoPendiente,
-      diezmo
+      diezmo: diezmoMes
     };
   }
 };
