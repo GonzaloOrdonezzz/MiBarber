@@ -995,7 +995,8 @@ export default function App() {
       <header className="app-header">
         <div className="brand-logo">
           <div className="brand-icon">
-            <Scissors size={26} />
+            <img src="/logoMiBarber.png" alt="MiBarber Logo" className="brand-img" onError={(e) => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'block'; }} />
+            <Scissors size={22} color="var(--accent-color)" style={{ display: 'none' }} />
           </div>
           <div>
             <h1 className="brand-title">MiBarber</h1>

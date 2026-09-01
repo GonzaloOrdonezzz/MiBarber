@@ -1,0 +1,17 @@
+{
+  "name": "MiBarber - Gestión de Barbería",
+  "short_name": "MiBarber",
+  "description": "Panel de Gestión de Barbería, Turnos y Finanzas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#15110E",
+  "theme_color": "#8C6B4A",
+  "icons": [
+    {
+      "src": "/logoMiBarber.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
