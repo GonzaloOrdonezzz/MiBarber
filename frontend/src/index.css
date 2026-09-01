@@ -558,6 +558,47 @@ body {
   background: var(--danger-bg);
 }
 
+/* Diezmo Semanal Badge */
+.diezmo-semanal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: color-mix(in srgb, var(--accent-color) 12%, var(--card-bg));
+  border: 1.5px solid color-mix(in srgb, var(--accent-color) 40%, var(--border-color));
+  padding: 0.4rem 0.85rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.diezmo-semanal-icon {
+  background: var(--accent-color);
+  color: var(--accent-contrast);
+  padding: 0.25rem;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.diezmo-semanal-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  line-height: 1.1;
+}
+
+.diezmo-semanal-val {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--accent-color);
+  line-height: 1.2;
+  display: block;
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;

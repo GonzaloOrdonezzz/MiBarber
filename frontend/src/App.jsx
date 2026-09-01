@@ -1215,11 +1215,24 @@ export default function App() {
 
           {/* Tabla de Cortes de la Semana */}
           <section className="content-section">
-            <div className="section-header">
+            <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
               <h2 className="section-title">
                 <Calendar size={20} color="var(--accent-color)" />
                 Cortes de la Semana
               </h2>
+
+              {/* 10% Décima Parte de esta Semana */}
+              <div className="diezmo-semanal-badge">
+                <div className="diezmo-semanal-icon">
+                  <Percent size={15} />
+                </div>
+                <div>
+                  <span className="diezmo-semanal-label">10% Décima Parte (Semana)</span>
+                  <strong className="diezmo-semanal-val">
+                    {formatMoneda(resumenSemanal.diezmo !== undefined ? resumenSemanal.diezmo : ((resumenSemanal.totalCobrado || 0) * 0.10))}
+                  </strong>
+                </div>
+              </div>
             </div>
 
             {resumenSemanal.cortes && resumenSemanal.cortes.length > 0 ? (
@@ -1528,7 +1541,7 @@ export default function App() {
           </div>
 
           {/* Tarjetas de Resumen y KPIs del Año Seleccionado */}
-          <div className="stats-grid">
+          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
             <div className="stat-card cobrado">
               <div className="stat-header">
                 <span className="stat-title">Ingresos Cobrados ({anioSeleccionado})</span>
@@ -1549,17 +1562,6 @@ export default function App() {
               </div>
               <div className="stat-value">{resumenAnual.totalCortes} cortes</div>
               <div className="stat-footer">Volumen de clientes atendidos</div>
-            </div>
-
-            <div className="stat-card diezmo">
-              <div className="stat-header">
-                <span className="stat-title">10% Décima Parte Anual</span>
-                <div className="stat-icon-wrapper">
-                  <Percent size={20} />
-                </div>
-              </div>
-              <div className="stat-value">{formatMoneda(resumenAnual.totalDiezmo)}</div>
-              <div className="stat-footer">10% del total cobrado en {anioSeleccionado}</div>
             </div>
 
             <div className="stat-card deudores">
@@ -1714,7 +1716,6 @@ export default function App() {
                     <th>Mes</th>
                     <th style={{ textAlign: 'center' }}>Cortes Realizados</th>
                     <th style={{ textAlign: 'right' }}>Ingresos Cobrados</th>
-                    <th style={{ textAlign: 'right' }}>10% Décima Parte</th>
                     <th style={{ textAlign: 'right' }}>Pendiente</th>
                   </tr>
                 </thead>
@@ -1749,9 +1750,6 @@ export default function App() {
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--success)' }}>
                         {formatMoneda(stat.ingresosTotales)}
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--accent-color)' }}>
-                        {formatMoneda(stat.ingresosTotales * 0.10)}
                       </td>
                       <td style={{ textAlign: 'right', color: stat.totalPendiente > 0 ? 'var(--danger)' : 'var(--text-dim)' }}>
                         {formatMoneda(stat.totalPendiente)}
