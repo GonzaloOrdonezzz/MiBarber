@@ -18,7 +18,10 @@ import {
   Sun,
   Moon,
   Flame,
-  Check
+  Check,
+  BarChart3,
+  Award,
+  Activity
 } from 'lucide-react';
 import { api } from './services/api';
 
@@ -81,6 +84,8 @@ export default function App() {
   const [anioSeleccionado, setAnioSeleccionado] = useState(new Date().getFullYear());
   const [estadisticasMensuales, setEstadisticasMensuales] = useState([]);
   const [actividadAnual, setActividadAnual] = useState([]);
+  const [metricaGrafico, setMetricaGrafico] = useState('INGRESOS'); // 'INGRESOS' | 'CORTES' | 'DIEZMO' | 'PENDIENTE'
+  const [mesSeleccionadoGrafico, setMesSeleccionadoGrafico] = useState(null);
 
   // Estado Tooltip Heatmap
   const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, fecha: '', cantidad: 0 });
@@ -251,6 +256,80 @@ export default function App() {
   const totalCortesAnual = useMemo(() => {
     return actividadAnual.reduce((acc, curr) => acc + curr.cantidadCortes, 0);
   }, [actividadAnual]);
+
+  // Resumen anual consolidado para tarjetas KPI
+  const resumenAnual = useMemo(() => {
+    const totalCobrado = estadisticasMensuales.reduce((acc, curr) => acc + (curr.ingresosTotales || 0), 0);
+    const totalCortes = estadisticasMensuales.reduce((acc, curr) => acc + (curr.cantidadCortes || 0), 0);
+    const totalDiezmo = Math.round(totalCobrado * 0.10 * 100) / 100;
+    const totalPendiente = estadisticasMensuales.reduce((acc, curr) => acc + (curr.totalPendiente || 0), 0);
+
+    let mesPico = null;
+    let maxIngreso = -1;
+    estadisticasMensuales.forEach((stat) => {
+      if (stat.ingresosTotales > maxIngreso && stat.ingresosTotales > 0) {
+        maxIngreso = stat.ingresosTotales;
+        mesPico = stat;
+      }
+    });
+
+    return {
+      totalCobrado,
+      totalCortes,
+      totalDiezmo,
+      totalPendiente,
+      mesPico
+    };
+  }, [estadisticasMensuales]);
+
+  // Datos normalizados y calculados para las barras del histograma
+  const datosHistograma = useMemo(() => {
+    let maxValor = 0;
+    const items = estadisticasMensuales.map((stat) => {
+      let valor = 0;
+      if (metricaGrafico === 'INGRESOS') valor = stat.ingresosTotales || 0;
+      else if (metricaGrafico === 'CORTES') valor = stat.cantidadCortes || 0;
+      else if (metricaGrafico === 'DIEZMO') valor = (stat.ingresosTotales || 0) * 0.10;
+      else if (metricaGrafico === 'PENDIENTE') valor = stat.totalPendiente || 0;
+
+      if (valor > maxValor) maxValor = valor;
+
+      return {
+        ...stat,
+        valor
+      };
+    });
+
+    const now = new Date();
+    const esAnioActual = anioSeleccionado === now.getFullYear();
+    const mesActualNumero = now.getMonth() + 1;
+
+    return items.map((item) => {
+      const porcentaje = maxValor > 0 ? Math.max((item.valor / maxValor) * 100, item.valor > 0 ? 8 : 2) : 2;
+      const esMesActual = esAnioActual && item.mes === mesActualNumero;
+      const esMesPico = maxValor > 0 && item.valor === maxValor && item.valor > 0;
+      return {
+        ...item,
+        porcentaje,
+        esMesActual,
+        esMesPico
+      };
+    });
+  }, [estadisticasMensuales, metricaGrafico, anioSeleccionado]);
+
+  // Mes actualmente seleccionado o activo en el histograma
+  const mesActivo = useMemo(() => {
+    if (mesSeleccionadoGrafico) {
+      // Buscar la versión actualizada del mes seleccionado
+      const actualizado = datosHistograma.find((d) => d.mes === mesSeleccionadoGrafico.mes);
+      if (actualizado) return actualizado;
+    }
+    // Por defecto el mes actual si es el año en curso, o el mes con mayor actividad, o el primer mes
+    const mesActual = datosHistograma.find((d) => d.esMesActual);
+    if (mesActual) return mesActual;
+    const mesConDatos = datosHistograma.find((d) => d.valor > 0);
+    return mesConDatos || datosHistograma[0] || null;
+  }, [mesSeleccionadoGrafico, datosHistograma]);
 
   const { diasHeatmap, mesesPosiciones, totalSemanas } = useMemo(() => {
     const anio = anioActivoHeatmap;
@@ -1424,18 +1503,19 @@ export default function App() {
         </main>
       )}
 
-      {/* CONTENIDO 3: ESTADÍSTICAS MENSUALES */}
+      {/* CONTENIDO 3: ESTADÍSTICAS MENSUALES & HISTOGRAMA INTERACTIVO */}
       {activeTab === 'estadisticas' && (
         <main>
           <div className="controls-bar">
             <span className="week-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <TrendingUp size={20} color="var(--accent-color)" />
-              Estadísticas Anuales
+              Estadísticas y Rendimiento Anual ({anioSeleccionado})
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <button 
                 className="btn-icon" 
                 onClick={() => setAnioSeleccionado(anioSeleccionado - 1)}
+                title="Año anterior"
               >
                 <ChevronLeft size={18} />
               </button>
@@ -1445,17 +1525,216 @@ export default function App() {
               <button 
                 className="btn-icon" 
                 onClick={() => setAnioSeleccionado(anioSeleccionado + 1)}
+                title="Año siguiente"
               >
                 <ChevronRight size={18} />
               </button>
             </div>
           </div>
 
-          {/* Tabla de Resumen Mensual */}
+          {/* Tarjetas de Resumen y KPIs del Año Seleccionado */}
+          <div className="stats-grid">
+            <div className="stat-card cobrado">
+              <div className="stat-header">
+                <span className="stat-title">Ingresos Cobrados ({anioSeleccionado})</span>
+                <div className="stat-icon-wrapper">
+                  <DollarSign size={20} />
+                </div>
+              </div>
+              <div className="stat-value">{formatMoneda(resumenAnual.totalCobrado)}</div>
+              <div className="stat-footer">Total acumulado en el año</div>
+            </div>
+
+            <div className="stat-card turnos">
+              <div className="stat-header">
+                <span className="stat-title">Total Cortes Realizados</span>
+                <div className="stat-icon-wrapper">
+                  <Scissors size={20} />
+                </div>
+              </div>
+              <div className="stat-value">{resumenAnual.totalCortes} cortes</div>
+              <div className="stat-footer">Volumen de clientes atendidos</div>
+            </div>
+
+            <div className="stat-card diezmo">
+              <div className="stat-header">
+                <span className="stat-title">10% Décima Parte Anual</span>
+                <div className="stat-icon-wrapper">
+                  <Percent size={20} />
+                </div>
+              </div>
+              <div className="stat-value">{formatMoneda(resumenAnual.totalDiezmo)}</div>
+              <div className="stat-footer">10% del total cobrado en {anioSeleccionado}</div>
+            </div>
+
+            <div className="stat-card deudores">
+              <div className="stat-header">
+                <span className="stat-title">Mes con Mayor Recaudación</span>
+                <div className="stat-icon-wrapper">
+                  <Award size={20} />
+                </div>
+              </div>
+              <div className="stat-value">
+                {resumenAnual.mesPico ? resumenAnual.mesPico.nombreMes : 'Sin datos'}
+              </div>
+              <div className="stat-footer">
+                {resumenAnual.mesPico ? `${formatMoneda(resumenAnual.mesPico.ingresosTotales)} recaudados` : 'Aún no hay cortes'}
+              </div>
+            </div>
+          </div>
+
+          {/* SECCIÓN HISTOGRAMA / GRÁFICO INTERACTIVO */}
+          <section className="content-section chart-section">
+            <div className="chart-header">
+              <div>
+                <h2 className="section-title">
+                  <BarChart3 size={20} color="var(--accent-color)" />
+                  Histograma de Evolución Mensual ({anioSeleccionado})
+                </h2>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Tocá o pasá el cursor por cualquier mes para ver su desglose interactivo
+                </p>
+              </div>
+
+              {/* Selector interactivo de métricas */}
+              <div className="chart-metrics-selector">
+                <button
+                  className={`chart-metric-btn ${metricaGrafico === 'INGRESOS' ? 'active' : ''}`}
+                  onClick={() => setMetricaGrafico('INGRESOS')}
+                >
+                  <DollarSign size={14} /> Ingresos ($)
+                </button>
+                <button
+                  className={`chart-metric-btn ${metricaGrafico === 'CORTES' ? 'active' : ''}`}
+                  onClick={() => setMetricaGrafico('CORTES')}
+                >
+                  <Scissors size={14} /> Cortes Realizados
+                </button>
+                <button
+                  className={`chart-metric-btn ${metricaGrafico === 'DIEZMO' ? 'active' : ''}`}
+                  onClick={() => setMetricaGrafico('DIEZMO')}
+                >
+                  <Percent size={14} /> 10% Décima Parte
+                </button>
+                <button
+                  className={`chart-metric-btn ${metricaGrafico === 'PENDIENTE' ? 'active' : ''}`}
+                  onClick={() => setMetricaGrafico('PENDIENTE')}
+                >
+                  <AlertCircle size={14} /> Pendiente ($)
+                </button>
+              </div>
+            </div>
+
+            {/* Cuadrícula de Columnas del Histograma */}
+            <div className="histogram-scroll-wrapper">
+              <div className="histogram-container">
+                {datosHistograma.map((item) => {
+                  const isHovered = mesActivo && mesActivo.mes === item.mes;
+                  return (
+                    <div
+                      key={item.mes}
+                      className={`histogram-bar-col ${isHovered ? 'active' : ''}`}
+                      onClick={() => setMesSeleccionadoGrafico(item)}
+                      onMouseEnter={() => setMesSeleccionadoGrafico(item)}
+                    >
+                      {/* Valor numérico en el tope de la columna */}
+                      <span className="histogram-bar-val">
+                        {metricaGrafico === 'CORTES'
+                          ? (item.valor > 0 ? item.valor : '-')
+                          : (item.valor > 0 ? formatMoneda(item.valor) : '-')}
+                      </span>
+
+                      {/* Pista y Barra con altura proporcional */}
+                      <div className="histogram-bar-track">
+                        <div
+                          className={`histogram-bar-fill ${item.valor === 0 ? 'empty' : ''} ${item.esMesPico && metricaGrafico === 'INGRESOS' ? 'highlight' : ''}`}
+                          style={{ height: `${item.porcentaje}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Fila de nombres de meses */}
+              <div className="histogram-labels-row">
+                {datosHistograma.map((item) => {
+                  const isHovered = mesActivo && mesActivo.mes === item.mes;
+                  return (
+                    <div
+                      key={item.mes}
+                      className={`histogram-label-item ${item.esMesActual ? 'current-month' : ''} ${isHovered ? 'active' : ''}`}
+                      onClick={() => setMesSeleccionadoGrafico(item)}
+                    >
+                      <span>{item.nombreMes.substring(0, 3)}</span>
+                      {item.esMesActual && <div className="current-dot" title="Mes Actual" />}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Tarjeta de Detalle del Mes Seleccionado en el Histograma */}
+            {mesActivo && (
+              <div className="histogram-details-card">
+                <div className="histogram-details-header">
+                  <span className="histogram-details-badge">
+                    📅 Detalle de {mesActivo.nombreMes} {anioSeleccionado}
+                    {mesActivo.esMesActual && ' • Mes en Curso'}
+                  </span>
+                  {mesActivo.esMesPico && metricaGrafico === 'INGRESOS' && (
+                    <span className="badge-pico">🏆 Mes con Mayor Recaudación del Año</span>
+                  )}
+                </div>
+
+                <div className="histogram-details-grid">
+                  <div className="histogram-details-item">
+                    <span className="histogram-details-label">Ingresos Cobrados</span>
+                    <span className="histogram-details-value" style={{ color: 'var(--success)' }}>
+                      {formatMoneda(mesActivo.ingresosTotales)}
+                    </span>
+                  </div>
+
+                  <div className="histogram-details-item">
+                    <span className="histogram-details-label">Cortes Realizados</span>
+                    <span className="histogram-details-value" style={{ color: 'var(--accent-color)' }}>
+                      {mesActivo.cantidadCortes} cortes
+                    </span>
+                  </div>
+
+                  <div className="histogram-details-item">
+                    <span className="histogram-details-label">10% Décima Parte</span>
+                    <span className="histogram-details-value" style={{ color: 'var(--accent-color)' }}>
+                      {formatMoneda(mesActivo.ingresosTotales * 0.10)}
+                    </span>
+                  </div>
+
+                  <div className="histogram-details-item">
+                    <span className="histogram-details-label">Pendiente / Deuda</span>
+                    <span className="histogram-details-value" style={{ color: mesActivo.totalPendiente > 0 ? 'var(--danger)' : 'var(--text-dim)' }}>
+                      {formatMoneda(mesActivo.totalPendiente)}
+                    </span>
+                  </div>
+
+                  <div className="histogram-details-item">
+                    <span className="histogram-details-label">Promedio por Corte</span>
+                    <span className="histogram-details-value">
+                      {mesActivo.cantidadCortes > 0
+                        ? formatMoneda(mesActivo.ingresosTotales / mesActivo.cantidadCortes)
+                        : '$0'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Tabla de Resumen Detallado Mensual */}
           <section className="content-section">
             <div className="section-header">
               <h2 className="section-title">
-                Resumen de Trabajo e Ingresos por Mes
+                <Calendar size={20} color="var(--accent-color)" />
+                Resumen de Trabajo e Ingresos por Mes ({anioSeleccionado})
               </h2>
             </div>
 
@@ -1472,8 +1751,22 @@ export default function App() {
                 </thead>
                 <tbody>
                   {estadisticasMensuales.map((stat) => (
-                    <tr key={stat.mes}>
-                      <td style={{ fontWeight: 700 }}>{stat.nombreMes}</td>
+                    <tr 
+                      key={stat.mes}
+                      style={{
+                        background: mesActivo && mesActivo.mes === stat.mes ? 'var(--card-hover-bg)' : 'transparent',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => setMesSeleccionadoGrafico(stat)}
+                    >
+                      <td style={{ fontWeight: 700 }}>
+                        {stat.nombreMes}
+                        {stat.mes === (new Date().getMonth() + 1) && anioSeleccionado === new Date().getFullYear() && (
+                          <span style={{ fontSize: '0.68rem', marginLeft: '6px', color: 'var(--accent-color)', fontWeight: 800 }}>
+                            (Actual)
+                          </span>
+                        )}
+                      </td>
                       <td style={{ textAlign: 'center' }}>
                         <span style={{
                           background: stat.cantidadCortes > 0 ? 'var(--accent-glow)' : 'transparent',
@@ -1500,6 +1793,9 @@ export default function App() {
               </table>
             </div>
           </section>
+
+          {/* Mapa de Calor Anual */}
+          {renderHeatmapSection(`Mapa de Actividad Día a Día (${totalCortesAnual} cortes en ${anioSeleccionado})`)}
         </main>
       )}
 
