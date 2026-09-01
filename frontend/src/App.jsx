@@ -289,8 +289,6 @@ export default function App() {
       let valor = 0;
       if (metricaGrafico === 'INGRESOS') valor = stat.ingresosTotales || 0;
       else if (metricaGrafico === 'CORTES') valor = stat.cantidadCortes || 0;
-      else if (metricaGrafico === 'DIEZMO') valor = (stat.ingresosTotales || 0) * 0.10;
-      else if (metricaGrafico === 'PENDIENTE') valor = stat.totalPendiente || 0;
 
       if (valor > maxValor) maxValor = valor;
 
@@ -1187,9 +1185,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Gráfico de Contribución / Mapa de Actividad en la página principal */}
-          {renderHeatmapSection(`Mapa de Actividad Anual (${totalCortesAnual} cortes en ${currentDate.getFullYear()})`)}
-
           {/* Nueva Sección: Calendario Mensual Interactivo y Formulario de Turnos */}
           {renderMonthlyPlannerSection()}
 
@@ -1610,18 +1605,6 @@ export default function App() {
                 >
                   <Scissors size={14} /> Cortes Realizados
                 </button>
-                <button
-                  className={`chart-metric-btn ${metricaGrafico === 'DIEZMO' ? 'active' : ''}`}
-                  onClick={() => setMetricaGrafico('DIEZMO')}
-                >
-                  <Percent size={14} /> 10% Décima Parte
-                </button>
-                <button
-                  className={`chart-metric-btn ${metricaGrafico === 'PENDIENTE' ? 'active' : ''}`}
-                  onClick={() => setMetricaGrafico('PENDIENTE')}
-                >
-                  <AlertCircle size={14} /> Pendiente ($)
-                </button>
               </div>
             </div>
 
@@ -1699,20 +1682,6 @@ export default function App() {
                     <span className="histogram-details-label">Cortes Realizados</span>
                     <span className="histogram-details-value" style={{ color: 'var(--accent-color)' }}>
                       {mesActivo.cantidadCortes} cortes
-                    </span>
-                  </div>
-
-                  <div className="histogram-details-item">
-                    <span className="histogram-details-label">10% Décima Parte</span>
-                    <span className="histogram-details-value" style={{ color: 'var(--accent-color)' }}>
-                      {formatMoneda(mesActivo.ingresosTotales * 0.10)}
-                    </span>
-                  </div>
-
-                  <div className="histogram-details-item">
-                    <span className="histogram-details-label">Pendiente / Deuda</span>
-                    <span className="histogram-details-value" style={{ color: mesActivo.totalPendiente > 0 ? 'var(--danger)' : 'var(--text-dim)' }}>
-                      {formatMoneda(mesActivo.totalPendiente)}
                     </span>
                   </div>
 
