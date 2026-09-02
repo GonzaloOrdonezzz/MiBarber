@@ -392,12 +392,13 @@ export default function App() {
     };
   }, [anioActivoHeatmap, mapaActividad]);
 
-  // Nivel de intensidad (0: 0 cortes, 1: 1-3, 2: 4-7, 3: 8+)
+  // Nivel de intensidad progresivo para diferenciar claramente 1 corte, 2 cortes, etc.
   const calcularNivel = (cantidad) => {
     if (!cantidad || cantidad === 0) return 0;
-    if (cantidad <= 3) return 1;
-    if (cantidad <= 7) return 2;
-    return 3;
+    if (cantidad === 1) return 1;
+    if (cantidad === 2) return 2;
+    if (cantidad <= 4) return 3;
+    return 4;
   };
 
   // Generación de celdas para el Calendario Mensual Interactivo (Domingo a Sábado)
@@ -755,9 +756,10 @@ export default function App() {
               <span>Menos</span>
               <div className="legend-cells">
                 <div className="heatmap-cell" data-level="0" title="0 cortes" />
-                <div className="heatmap-cell" data-level="1" title="1 a 3 cortes" />
-                <div className="heatmap-cell" data-level="2" title="4 a 7 cortes" />
-                <div className="heatmap-cell" data-level="3" title="8+ cortes" />
+                <div className="heatmap-cell" data-level="1" title="1 corte" />
+                <div className="heatmap-cell" data-level="2" title="2 cortes" />
+                <div className="heatmap-cell" data-level="3" title="3 a 4 cortes" />
+                <div className="heatmap-cell" data-level="4" title="5+ cortes" />
               </div>
               <span>Más</span>
             </div>
@@ -857,9 +859,10 @@ export default function App() {
                   <span>Menos</span>
                   <div className="legend-cells">
                     <div className="heatmap-cell" data-level="0" title="0 cortes" />
-                    <div className="heatmap-cell" data-level="1" title="1 a 3 cortes" />
-                    <div className="heatmap-cell" data-level="2" title="4 a 7 cortes" />
-                    <div className="heatmap-cell" data-level="3" title="8+ cortes" />
+                    <div className="heatmap-cell" data-level="1" title="1 corte" />
+                    <div className="heatmap-cell" data-level="2" title="2 cortes" />
+                    <div className="heatmap-cell" data-level="3" title="3 a 4 cortes" />
+                    <div className="heatmap-cell" data-level="4" title="5+ cortes" />
                   </div>
                   <span>Más</span>
                 </div>

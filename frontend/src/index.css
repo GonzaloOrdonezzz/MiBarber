@@ -803,21 +803,28 @@ body {
   outline: 1.5px solid var(--accent-color);
 }
 
-/* Escala de intensidad basada en --accent-color */
+/* Escala de intensidad basada en --accent-color (0 a 4 niveles) */
 .heatmap-cell[data-level="0"] {
   background-color: var(--input-bg);
   border: 1px solid var(--border-color);
 }
 
 .heatmap-cell[data-level="1"] {
-  background-color: color-mix(in srgb, var(--accent-color) 35%, transparent);
+  background-color: color-mix(in srgb, var(--accent-color) 25%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-color) 40%, transparent);
 }
 
 .heatmap-cell[data-level="2"] {
-  background-color: color-mix(in srgb, var(--accent-color) 70%, transparent);
+  background-color: color-mix(in srgb, var(--accent-color) 50%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-color) 65%, transparent);
 }
 
 .heatmap-cell[data-level="3"] {
+  background-color: color-mix(in srgb, var(--accent-color) 75%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-color) 90%, transparent);
+}
+
+.heatmap-cell[data-level="4"] {
   background-color: var(--accent-color);
   box-shadow: 0 0 8px var(--accent-glow);
 }
@@ -1293,26 +1300,31 @@ body {
   z-index: 5;
 }
 
-/* Niveles de calor mensual según cantidad de cortes */
+/* Niveles de calor mensual según cantidad de cortes (0 a 4 niveles claramente diferenciados) */
 .monthly-day-btn[data-level="0"] {
   background-color: var(--input-bg);
 }
 
 .monthly-day-btn[data-level="1"] {
-  background-color: color-mix(in srgb, var(--accent-color) 25%, var(--card-bg));
-  border-color: color-mix(in srgb, var(--accent-color) 40%, var(--border-color));
+  background-color: color-mix(in srgb, var(--accent-color) 18%, var(--card-bg));
+  border-color: color-mix(in srgb, var(--accent-color) 35%, var(--border-color));
 }
 
 .monthly-day-btn[data-level="2"] {
-  background-color: color-mix(in srgb, var(--accent-color) 55%, var(--card-bg));
-  border-color: color-mix(in srgb, var(--accent-color) 75%, var(--border-color));
+  background-color: color-mix(in srgb, var(--accent-color) 38%, var(--card-bg));
+  border-color: color-mix(in srgb, var(--accent-color) 60%, var(--border-color));
 }
 
 .monthly-day-btn[data-level="3"] {
+  background-color: color-mix(in srgb, var(--accent-color) 65%, var(--card-bg));
+  border-color: color-mix(in srgb, var(--accent-color) 85%, var(--border-color));
+}
+
+.monthly-day-btn[data-level="4"] {
   background-color: var(--accent-color);
   color: var(--accent-contrast);
   border-color: var(--accent-hover);
-  box-shadow: 0 0 10px var(--accent-glow);
+  box-shadow: 0 0 12px var(--accent-glow);
 }
 
 .monthly-day-number {
@@ -1328,10 +1340,27 @@ body {
   align-items: center;
   gap: 2px;
   align-self: flex-end;
-  opacity: 0.95;
-  background: rgba(0, 0, 0, 0.15);
+  background: color-mix(in srgb, var(--accent-color) 20%, var(--card-bg));
+  border: 1px solid color-mix(in srgb, var(--accent-color) 35%, var(--border-color));
+  color: var(--text-color);
   padding: 1px 4px;
   border-radius: 4px;
+}
+
+.monthly-day-btn[data-level="2"] .monthly-day-cuts-badge {
+  background: color-mix(in srgb, var(--accent-color) 30%, var(--card-bg));
+  border-color: color-mix(in srgb, var(--accent-color) 55%, var(--border-color));
+}
+
+.monthly-day-btn[data-level="3"] .monthly-day-cuts-badge {
+  background: color-mix(in srgb, var(--accent-color) 45%, var(--card-bg));
+  border-color: color-mix(in srgb, var(--accent-color) 75%, var(--border-color));
+}
+
+.monthly-day-btn[data-level="4"] .monthly-day-cuts-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 /* Leyenda Mensual */
