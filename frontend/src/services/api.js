@@ -191,14 +191,20 @@ export const api = {
       .from('cortes')
       .select('*')
       .eq('estado_pago', 'PENDIENTE')
-      .order('fecha', { ascending: false })
-      .order('hora', { ascending: false });
+      .order('fecha', { ascending: true })
+      .order('hora', { ascending: true });
 
     if (error) {
       console.error('Error getPendientes:', error);
       throw new Error(error.message || 'Error al obtener cortes pendientes');
     }
-    return (data || []).map(mapCorteFromDB);
+    const turnos = (data || []).map(mapCorteFromDB);
+    // Asegurar orden cronológico ascendente (los turnos más cercanos en fecha y hora primero)
+    return turnos.sort((a, b) => {
+      const dtA = `${a.fecha || ''} ${a.hora || '00:00'}`;
+      const dtB = `${b.fecha || ''} ${b.hora || '00:00'}`;
+      return dtA.localeCompare(dtB);
+    });
   },
 
   async getDeudores() {

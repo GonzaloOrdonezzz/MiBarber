@@ -26,6 +26,9 @@ public interface CorteRepository extends JpaRepository<Corte, Long> {
     // Cortes filtrados por estado de pago (ej. todos los deudores o todos los pagados)
     List<Corte> findByEstadoPagoOrderByFechaDescHoraDesc(EstadoPago estadoPago);
 
+    // Cortes filtrados por estado de pago ordenados cronológicamente (turnos pendientes más próximos)
+    List<Corte> findByEstadoPagoOrderByFechaAscHoraAsc(EstadoPago estadoPago);
+
     // Cortes filtrados por estado de pago en una semana/rango específico
     List<Corte> findByEstadoPagoAndFechaBetweenOrderByFechaAscHoraAsc(EstadoPago estadoPago, LocalDate fechaInicio, LocalDate fechaFin);
 

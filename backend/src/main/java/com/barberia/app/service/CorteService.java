@@ -85,7 +85,7 @@ public class CorteService {
     }
 
     public List<Corte> obtenerPendientes() {
-        return corteRepository.findByEstadoPagoOrderByFechaDescHoraDesc(EstadoPago.PENDIENTE);
+        return corteRepository.findByEstadoPagoOrderByFechaAscHoraAsc(EstadoPago.PENDIENTE);
     }
 
     public List<Corte> obtenerDeudores() {
