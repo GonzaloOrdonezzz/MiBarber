@@ -76,6 +76,7 @@ export default function Auth({ onLoginSuccess, theme, toggleTheme }) {
         }
       }
     } catch (err) {
+      console.error('Error detallado de autenticación:', err);
       setErrorMsg(err.message || 'Ocurrió un error. Intenta nuevamente.');
     } finally {
       setLoading(false);

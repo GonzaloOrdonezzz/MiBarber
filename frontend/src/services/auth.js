@@ -85,7 +85,7 @@ export function translateAuthError(message = '') {
     return 'Demasiados intentos. Por favor espera unos minutos.';
   }
   if (msg.includes('network') || msg.includes('fetch')) {
-    return 'Error de conexión. Verifica tu acceso a internet.';
+    return 'No se pudo conectar con el servidor de autenticación. Si usás un bloqueador de anuncios (Brave Shields, uBlock o AdBlock), por favor desactivalo para este sitio.';
   }
   return message || 'Ocurrió un error inesperado al autenticar.';
 }
