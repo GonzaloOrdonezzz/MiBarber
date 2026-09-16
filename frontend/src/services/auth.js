@@ -84,8 +84,8 @@ export function translateAuthError(message = '') {
   if (msg.includes('rate limit')) {
     return 'Demasiados intentos. Por favor espera unos minutos.';
   }
-  if (msg.includes('network') || msg.includes('fetch')) {
-    return 'No se pudo conectar con el servidor de autenticación. Si usás un bloqueador de anuncios (Brave Shields, uBlock o AdBlock), por favor desactivalo para este sitio.';
+  if (msg.includes('failed to fetch')) {
+    return 'Error de conexión al servidor (Failed to fetch). Comprueba si alguna extensión, antivirus o red bloquea supabase.co.';
   }
   return message || 'Ocurrió un error inesperado al autenticar.';
 }

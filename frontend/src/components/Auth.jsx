@@ -25,11 +25,13 @@ export default function Auth({ onLoginSuccess, theme, toggleTheme }) {
   
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [rawError, setRawError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+    setRawError('');
     setSuccessMsg('');
 
     // Validaciones básicas
@@ -78,6 +80,7 @@ export default function Auth({ onLoginSuccess, theme, toggleTheme }) {
     } catch (err) {
       console.error('Error detallado de autenticación:', err);
       setErrorMsg(err.message || 'Ocurrió un error. Intenta nuevamente.');
+      setRawError(String(err?.message || err || 'Error desconocido'));
     } finally {
       setLoading(false);
     }
@@ -138,6 +141,7 @@ export default function Auth({ onLoginSuccess, theme, toggleTheme }) {
             onClick={() => {
               setIsLogin(true);
               setErrorMsg('');
+              setRawError('');
               setSuccessMsg('');
             }}
           >
@@ -149,6 +153,7 @@ export default function Auth({ onLoginSuccess, theme, toggleTheme }) {
             onClick={() => {
               setIsLogin(false);
               setErrorMsg('');
+              setRawError('');
               setSuccessMsg('');
             }}
           >
@@ -160,7 +165,14 @@ export default function Auth({ onLoginSuccess, theme, toggleTheme }) {
         {errorMsg && (
           <div className="auth-alert error">
             <AlertCircle size={18} className="auth-alert-icon" />
-            <span>{errorMsg}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left', width: '100%' }}>
+              <span>{errorMsg}</span>
+              {rawError && (
+                <code style={{ fontSize: '0.74rem', opacity: 0.85, wordBreak: 'break-all', marginTop: '4px', background: 'rgba(0,0,0,0.08)', padding: '3px 6px', borderRadius: '4px' }}>
+                  {rawError}
+                </code>
+              )}
+            </div>
           </div>
         )}
 
