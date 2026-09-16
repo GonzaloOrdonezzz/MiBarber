@@ -16,12 +16,19 @@ function getStoredAccounts() {
   try {
     const raw = localStorage.getItem('mibarber_registered_accounts');
     if (raw) {
-      const parsed = JSON.parse(raw);
-      // Asegurar que la cuenta de Gonzalo siempre esté presente y con su ID correcto
-      if (!parsed.some(a => a.email.toLowerCase() === DEFAULT_ACCOUNTS[0].email.toLowerCase())) {
-        parsed.unshift(DEFAULT_ACCOUNTS[0]);
+      let parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        // Asegurar que la cuenta de Gonzalo siempre tenga su UID oficial
+        const idx = parsed.findIndex(
+          (a) => a.email?.toLowerCase() === DEFAULT_ACCOUNTS[0].email.toLowerCase()
+        );
+        if (idx >= 0) {
+          parsed[idx] = { ...parsed[idx], ...DEFAULT_ACCOUNTS[0] };
+        } else {
+          parsed.unshift(DEFAULT_ACCOUNTS[0]);
+        }
+        return parsed;
       }
-      return parsed;
     }
   } catch (e) {}
   return [...DEFAULT_ACCOUNTS];
@@ -41,26 +48,34 @@ export const authService = {
       if (active) {
         const user = JSON.parse(active);
         if (user && user.id) {
+          // Si es Gonzalo, garantizar siempre su UID oficial
+          if (user.email?.toLowerCase() === DEFAULT_ACCOUNTS[0].email.toLowerCase()) {
+            user.id = DEFAULT_ACCOUNTS[0].id;
+            user.nombre = DEFAULT_ACCOUNTS[0].nombre;
+            localStorage.setItem('mibarber_active_user', JSON.stringify(user));
+          }
           return { user, access_token: `token_${user.id}` };
         }
       }
     } catch (e) {}
 
-    // Si es la primera vez o no cerró sesión explícitamente, iniciar por defecto con la cuenta de Gonzalo
-    const hasLoggedOut = localStorage.getItem('mibarber-logged-out');
-    if (!hasLoggedOut) {
-      const gonzalo = DEFAULT_ACCOUNTS[0];
-      const user = {
-        id: gonzalo.id,
-        email: gonzalo.email,
-        nombre: gonzalo.nombre,
-        user_metadata: { nombre: gonzalo.nombre }
-      };
-      localStorage.setItem('mibarber_active_user', JSON.stringify(user));
-      return { user, access_token: `token_${user.id}` };
+    // Si cerró sesión explícitamente en esta pestaña de navegación, respetar la pantalla de login
+    const justLoggedOut = sessionStorage.getItem('mibarber_just_logged_out');
+    if (justLoggedOut) {
+      return null;
     }
 
-    return null;
+    // Por defecto, inicializar de inmediato con la cuenta oficial de Gonzalo
+    const gonzalo = DEFAULT_ACCOUNTS[0];
+    const user = {
+      id: gonzalo.id,
+      email: gonzalo.email,
+      nombre: gonzalo.nombre,
+      user_metadata: { nombre: gonzalo.nombre }
+    };
+    localStorage.removeItem('mibarber-logged-out');
+    localStorage.setItem('mibarber_active_user', JSON.stringify(user));
+    return { user, access_token: `token_${user.id}` };
   },
 
   // 2. Obtener el ID del usuario activo (usado por api.js para filtrar cortes)
@@ -69,10 +84,13 @@ export const authService = {
       const active = localStorage.getItem('mibarber_active_user');
       if (active) {
         const user = JSON.parse(active);
+        if (user?.email?.toLowerCase() === DEFAULT_ACCOUNTS[0].email.toLowerCase()) {
+          return DEFAULT_ACCOUNTS[0].id;
+        }
         if (user?.id) return user.id;
       }
     } catch (e) {}
-    return 'efb95d5d-072f-4644-bb3a-9d1f086cd6af';
+    return DEFAULT_ACCOUNTS[0].id;
   },
 
   // 3. Obtener el usuario actual
@@ -84,10 +102,31 @@ export const authService = {
   // 4. Iniciar sesión con email y contraseña
   async signIn(email, password) {
     const trimmedEmail = (email || '').trim().toLowerCase();
-    const accounts = getStoredAccounts();
+    const cleanPassword = (password || '').trim();
 
+    // Acceso directo garantizado para Gonzalo
+    if (
+      trimmedEmail === DEFAULT_ACCOUNTS[0].email.toLowerCase() ||
+      trimmedEmail === 'gonzalo' ||
+      trimmedEmail === 'gonza'
+    ) {
+      const gonzalo = DEFAULT_ACCOUNTS[0];
+      const user = {
+        id: gonzalo.id,
+        email: gonzalo.email,
+        nombre: gonzalo.nombre,
+        user_metadata: { nombre: gonzalo.nombre }
+      };
+      sessionStorage.removeItem('mibarber_just_logged_out');
+      localStorage.removeItem('mibarber-logged-out');
+      localStorage.setItem('mibarber_active_user', JSON.stringify(user));
+      const session = { user, access_token: `token_${user.id}` };
+      return { user, session };
+    }
+
+    const accounts = getStoredAccounts();
     const found = accounts.find(
-      (a) => a.email.toLowerCase() === trimmedEmail && a.password === password
+      (a) => a.email.toLowerCase() === trimmedEmail && a.password === cleanPassword
     );
 
     if (!found) {
@@ -101,6 +140,7 @@ export const authService = {
       user_metadata: { nombre: found.nombre || found.email.split('@')[0] }
     };
 
+    sessionStorage.removeItem('mibarber_just_logged_out');
     localStorage.removeItem('mibarber-logged-out');
     localStorage.setItem('mibarber_active_user', JSON.stringify(user));
 
@@ -136,6 +176,7 @@ export const authService = {
       user_metadata: { nombre: newAccount.nombre }
     };
 
+    sessionStorage.removeItem('mibarber_just_logged_out');
     localStorage.removeItem('mibarber-logged-out');
     localStorage.setItem('mibarber_active_user', JSON.stringify(user));
 
@@ -145,7 +186,8 @@ export const authService = {
 
   // 6. Cerrar sesión
   async signOut() {
-    localStorage.setItem('mibarber-logged-out', 'true');
+    sessionStorage.setItem('mibarber_just_logged_out', 'true');
+    localStorage.removeItem('mibarber-logged-out');
     localStorage.removeItem('mibarber_active_user');
   },
 
