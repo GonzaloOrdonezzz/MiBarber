@@ -117,7 +117,17 @@ export const api = {
       const { data: { user } } = await supabase.auth.getUser();
       currentUserId = user?.id || null;
     } catch (e) {
-      console.warn('No se pudo obtener el usuario actual:', e);
+      console.warn('No se pudo obtener el usuario actual de Supabase:', e);
+    }
+
+    if (!currentUserId) {
+      try {
+        const localSaved = localStorage.getItem('mibarber-user-session');
+        if (localSaved) {
+          const parsed = JSON.parse(localSaved);
+          currentUserId = parsed?.user?.id || null;
+        }
+      } catch (e) {}
     }
 
     const payload = {
@@ -135,17 +145,27 @@ export const api = {
       payload.user_id = currentUserId;
     }
 
-    const { data, error } = await supabase
+    let result = await supabase
       .from('cortes')
       .insert([payload])
       .select()
       .single();
 
-    if (error) {
-      console.error('Error crearCorte:', error);
-      throw new Error(error.message || 'Error al crear corte en Supabase');
+    // Si la tabla cortes aún no tiene la columna user_id en la base de datos, reintentar sin user_id
+    if (result.error && result.error.message?.includes('user_id')) {
+      delete payload.user_id;
+      result = await supabase
+        .from('cortes')
+        .insert([payload])
+        .select()
+        .single();
     }
-    return mapCorteFromDB(data);
+
+    if (result.error) {
+      console.error('Error crearCorte:', result.error);
+      throw new Error(result.error.message || 'Error al crear corte en Supabase');
+    }
+    return mapCorteFromDB(result.data);
   },
 
   async actualizarCorte(id, corte) {

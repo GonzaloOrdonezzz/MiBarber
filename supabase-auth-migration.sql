@@ -57,14 +57,12 @@ TO authenticated
 USING (auth.uid() = user_id);
 
 -- ============================================================
--- PASO OPCIONAL (PARA NO PERDER TUS CORTES EXISTENTES):
+-- PASO PARA ASIGNAR TODOS TUS CORTES EXISTENTES A TU CUENTA:
 -- ============================================================
--- Si ya tenías cortes cargados en la base de datos antes de activar
--- las cuentas, una vez que te registres en la app con tu email,
--- podés asignarte todos los cortes antiguos ejecutando esta consulta
--- (reemplazando 'tu_email@ejemplo.com' por el correo con el que te registraste):
---
--- UPDATE public.cortes 
--- SET user_id = (SELECT id FROM auth.users WHERE email = 'tu_email@ejemplo.com') 
--- WHERE user_id IS NULL;
+-- Ejecuta esta consulta para que todos los cortes actuales
+-- queden vinculados a tu cuenta (ordonezgonzalo86@gmail.com):
+
+UPDATE public.cortes 
+SET user_id = 'efb95d5d-072f-4644-bb3a-9d1f086cd6af'
+WHERE user_id IS NULL;
 -- ============================================================
