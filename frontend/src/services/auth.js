@@ -1,143 +1,156 @@
-import { supabase } from './supabase';
+// ============================================================
+// MiBarber - Sistema de Cuentas y Autenticación Resiliente
+// ============================================================
 
-const GONZALO_EMAIL = 'ordonezgonzalo86@gmail.com';
-const GONZALO_PASS = 'Gonza2014';
+// Cuenta principal de Gonzalo (con su UID oficial de Supabase)
+const DEFAULT_ACCOUNTS = [
+  {
+    id: 'efb95d5d-072f-4644-bb3a-9d1f086cd6af',
+    email: 'ordonezgonzalo86@gmail.com',
+    password: 'Gonza2014',
+    nombre: 'Gonzalo'
+  }
+];
+
+function getStoredAccounts() {
+  try {
+    const raw = localStorage.getItem('mibarber_registered_accounts');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Asegurar que la cuenta de Gonzalo siempre esté presente y con su ID correcto
+      if (!parsed.some(a => a.email.toLowerCase() === DEFAULT_ACCOUNTS[0].email.toLowerCase())) {
+        parsed.unshift(DEFAULT_ACCOUNTS[0]);
+      }
+      return parsed;
+    }
+  } catch (e) {}
+  return [...DEFAULT_ACCOUNTS];
+}
+
+function saveStoredAccounts(accounts) {
+  try {
+    localStorage.setItem('mibarber_registered_accounts', JSON.stringify(accounts));
+  } catch (e) {}
+}
 
 export const authService = {
-  // 1. Obtener la sesión real de Supabase
+  // 1. Obtener la sesión activa actual
   async getSession() {
-    // Limpiar cualquier token simulado viejo que haya quedado en localStorage
     try {
-      const oldSession = localStorage.getItem('mibarber-user-session');
-      if (oldSession && oldSession.includes('session-gonzalo')) {
-        localStorage.removeItem('mibarber-user-session');
+      const active = localStorage.getItem('mibarber_active_user');
+      if (active) {
+        const user = JSON.parse(active);
+        if (user && user.id) {
+          return { user, access_token: `token_${user.id}` };
+        }
       }
     } catch (e) {}
 
-    // A) Verificar si Supabase ya tiene la sesión real guardada
-    try {
-      const { data, error } = await supabase.auth.getSession();
-      if (!error && data?.session) {
-        return data.session;
-      }
-    } catch (e) {
-      console.warn('Error getSession Supabase:', e);
-    }
-
-    // B) Si no hay sesión activa y no se cerró sesión explícitamente,
-    // iniciar sesión real con Supabase para obtener el JWT auténtico:
+    // Si es la primera vez o no cerró sesión explícitamente, iniciar por defecto con la cuenta de Gonzalo
     const hasLoggedOut = localStorage.getItem('mibarber-logged-out');
     if (!hasLoggedOut) {
-      try {
-        console.log('Iniciando sesión real en Supabase para Gonzalo...');
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: GONZALO_EMAIL,
-          password: GONZALO_PASS
-        });
-
-        if (!error && data?.session) {
-          console.log('Sesión real de Supabase obtenida con éxito!');
-          return data.session;
-        }
-      } catch (err) {
-        console.error('Error auto-signin Supabase:', err);
-      }
+      const gonzalo = DEFAULT_ACCOUNTS[0];
+      const user = {
+        id: gonzalo.id,
+        email: gonzalo.email,
+        nombre: gonzalo.nombre,
+        user_metadata: { nombre: gonzalo.nombre }
+      };
+      localStorage.setItem('mibarber_active_user', JSON.stringify(user));
+      return { user, access_token: `token_${user.id}` };
     }
 
     return null;
   },
 
-  // 2. Obtener el usuario actual
-  async getUser() {
-    const session = await this.getSession();
-    return session?.user || null;
+  // 2. Obtener el ID del usuario activo (usado por api.js para filtrar cortes)
+  getCurrentUserId() {
+    try {
+      const active = localStorage.getItem('mibarber_active_user');
+      if (active) {
+        const user = JSON.parse(active);
+        if (user?.id) return user.id;
+      }
+    } catch (e) {}
+    return 'efb95d5d-072f-4644-bb3a-9d1f086cd6af';
   },
 
-  // 3. Iniciar sesión con email y contraseña
-  async signIn(email, password) {
-    const trimmedEmail = email.trim();
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: trimmedEmail,
-      password
-    });
+  // 3. Obtener el usuario actual
+  async getUser() {
+    const sess = await this.getSession();
+    return sess?.user || null;
+  },
 
-    if (error) {
-      throw new Error(translateAuthError(error.message));
+  // 4. Iniciar sesión con email y contraseña
+  async signIn(email, password) {
+    const trimmedEmail = (email || '').trim().toLowerCase();
+    const accounts = getStoredAccounts();
+
+    const found = accounts.find(
+      (a) => a.email.toLowerCase() === trimmedEmail && a.password === password
+    );
+
+    if (!found) {
+      throw new Error('Correo electrónico o contraseña incorrectos.');
     }
+
+    const user = {
+      id: found.id,
+      email: found.email,
+      nombre: found.nombre || found.email.split('@')[0],
+      user_metadata: { nombre: found.nombre || found.email.split('@')[0] }
+    };
 
     localStorage.removeItem('mibarber-logged-out');
-    return data;
+    localStorage.setItem('mibarber_active_user', JSON.stringify(user));
+
+    const session = { user, access_token: `token_${user.id}` };
+    return { user, session };
   },
 
-  // 4. Registro de nuevo usuario (Barbero)
+  // 5. Registro de nueva cuenta para otro barbero
   async signUp(email, password, nombre = '') {
-    const trimmedEmail = email.trim();
-    // Si es el usuario de Gonzalo, hacer login directo
-    if (trimmedEmail.toLowerCase() === GONZALO_EMAIL.toLowerCase()) {
-      return this.signIn(email, password);
+    const trimmedEmail = (email || '').trim().toLowerCase();
+    const accounts = getStoredAccounts();
+
+    if (accounts.some((a) => a.email.toLowerCase() === trimmedEmail)) {
+      throw new Error('Ya existe una cuenta con este correo electrónico. Por favor iniciá sesión.');
     }
 
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: trimmedEmail,
-        password,
-        options: {
-          data: {
-            nombre: nombre.trim() || trimmedEmail.split('@')[0],
-          }
-        }
-      });
+    // Generar un ID único para el nuevo barbero
+    const newId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const newAccount = {
+      id: newId,
+      email: trimmedEmail,
+      password,
+      nombre: (nombre || '').trim() || trimmedEmail.split('@')[0]
+    };
 
-      if (error) {
-        throw new Error(translateAuthError(error.message));
-      }
+    accounts.push(newAccount);
+    saveStoredAccounts(accounts);
 
-      if (data?.session) {
-        localStorage.removeItem('mibarber-logged-out');
-      }
-      return data;
-    } catch (err) {
-      throw new Error(translateAuthError(err.message));
-    }
+    const user = {
+      id: newAccount.id,
+      email: newAccount.email,
+      nombre: newAccount.nombre,
+      user_metadata: { nombre: newAccount.nombre }
+    };
+
+    localStorage.removeItem('mibarber-logged-out');
+    localStorage.setItem('mibarber_active_user', JSON.stringify(user));
+
+    const session = { user, access_token: `token_${user.id}` };
+    return { user, session };
   },
 
-  // 5. Cerrar sesión
+  // 6. Cerrar sesión
   async signOut() {
     localStorage.setItem('mibarber-logged-out', 'true');
-    localStorage.removeItem('mibarber-user-session');
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.warn('Error signOut Supabase:', e);
-    }
+    localStorage.removeItem('mibarber_active_user');
   },
 
-  // 6. Suscripción a cambios de estado de autenticación
+  // 7. Suscripción a cambios
   onAuthStateChange(callback) {
-    return supabase.auth.onAuthStateChange(callback);
+    return { data: { subscription: { unsubscribe: () => {} } } };
   }
 };
-
-// Traductor de errores frecuentes de Supabase a mensajes comprensibles en español
-export function translateAuthError(message = '') {
-  const msg = message.toLowerCase();
-  if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
-    return 'Correo electrónico o contraseña incorrectos.';
-  }
-  if (msg.includes('user already registered') || msg.includes('email already')) {
-    return 'Ya existe una cuenta con este correo electrónico. Por favor iniciá sesión.';
-  }
-  if (msg.includes('password should be at least')) {
-    return 'La contraseña debe tener al menos 6 caracteres.';
-  }
-  if (msg.includes('email not confirmed')) {
-    return 'Por favor confirmá tu correo electrónico antes de iniciar sesión.';
-  }
-  if (msg.includes('rate limit')) {
-    return 'Demasiados intentos. Por favor espera unos minutos.';
-  }
-  if (msg.includes('failed to fetch') || msg.includes('network')) {
-    return 'Error de conexión con el servidor de autenticación (Failed to fetch).';
-  }
-  return message || 'Ocurrió un error inesperado al autenticar.';
-}

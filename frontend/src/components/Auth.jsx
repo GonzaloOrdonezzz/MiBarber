@@ -183,6 +183,41 @@ export default function Auth({ onLoginSuccess, theme, toggleTheme }) {
           </div>
         )}
 
+        {/* Acceso Rápido para Gonzalo */}
+        {isLogin && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ 
+              width: '100%', 
+              marginBottom: '1rem', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              gap: '8px',
+              padding: '0.75rem',
+              fontWeight: 700,
+              fontSize: '0.92rem',
+              border: '1px solid var(--accent-color)',
+              color: 'var(--text-color)'
+            }}
+            onClick={async () => {
+              try {
+                setLoading(true);
+                const { session } = await authService.signIn('ordonezgonzalo86@gmail.com', 'Gonza2014');
+                if (session && onLoginSuccess) onLoginSuccess(session);
+              } catch (err) {
+                setErrorMsg(err.message);
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
+            <Scissors size={17} color="var(--accent-color)" />
+            <span>💈 Ingresar como Gonzalo (ordonezgonzalo86)</span>
+          </button>
+        )}
+
         {/* Formulario */}
         <form onSubmit={handleSubmit} className="auth-form">
           {!isLogin && (

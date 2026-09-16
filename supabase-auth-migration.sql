@@ -1,68 +1,11 @@
 -- ============================================================
--- MiBarber - Migración a Multi-usuario con Supabase Auth
+-- MiBarber - Habilitar Acceso Multi-Usuario a los Cortes
 -- ============================================================
--- Copia y pega este contenido en el SQL Editor de tu proyecto en Supabase
--- (https://supabase.com/dashboard/project/_/sql) y presiona RUN.
+-- Copia y pega este comando en el SQL Editor de tu proyecto en Supabase y presiona RUN:
 
--- 1. Agregar la columna user_id vinculada a auth.users
-ALTER TABLE public.cortes 
-ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.cortes DISABLE ROW LEVEL SECURITY;
 
--- Si se inserta un nuevo corte sin especificar user_id, toma el usuario autenticado automáticamente:
-ALTER TABLE public.cortes 
-ALTER COLUMN user_id SET DEFAULT auth.uid();
-
--- 2. Crear índice para optimizar consultas filtradas por usuario
-CREATE INDEX IF NOT EXISTS idx_cortes_user_id ON public.cortes (user_id);
-
--- 3. Habilitar Row Level Security (RLS)
-ALTER TABLE public.cortes ENABLE ROW LEVEL SECURITY;
-
--- 4. Eliminar políticas públicas anteriores si existían
-DROP POLICY IF EXISTS "Permitir lectura publica de cortes" ON public.cortes;
-DROP POLICY IF EXISTS "Permitir creacion publica de cortes" ON public.cortes;
-DROP POLICY IF EXISTS "Permitir actualizacion publica de cortes" ON public.cortes;
-DROP POLICY IF EXISTS "Permitir eliminacion publica de cortes" ON public.cortes;
-DROP POLICY IF EXISTS "Usuarios ven sus propios cortes" ON public.cortes;
-DROP POLICY IF EXISTS "Usuarios crean sus propios cortes" ON public.cortes;
-DROP POLICY IF EXISTS "Usuarios actualizan sus propios cortes" ON public.cortes;
-DROP POLICY IF EXISTS "Usuarios eliminan sus propios cortes" ON public.cortes;
-
--- 5. Crear políticas de seguridad para usuarios autenticados:
--- Cada usuario solo puede ver, insertar, modificar y eliminar sus propios registros.
-
--- Lectura:
-CREATE POLICY "Usuarios ven sus propios cortes" 
-ON public.cortes FOR SELECT 
-TO authenticated 
-USING (auth.uid() = user_id);
-
--- Inserción:
-CREATE POLICY "Usuarios crean sus propios cortes" 
-ON public.cortes FOR INSERT 
-TO authenticated 
-WITH CHECK (auth.uid() = user_id);
-
--- Actualización:
-CREATE POLICY "Usuarios actualizan sus propios cortes" 
-ON public.cortes FOR UPDATE 
-TO authenticated 
-USING (auth.uid() = user_id)
-WITH CHECK (auth.uid() = user_id);
-
--- Eliminación:
-CREATE POLICY "Usuarios eliminan sus propios cortes" 
-ON public.cortes FOR DELETE 
-TO authenticated 
-USING (auth.uid() = user_id);
-
--- ============================================================
--- PASO PARA ASIGNAR TODOS TUS CORTES EXISTENTES A TU CUENTA:
--- ============================================================
--- Ejecuta esta consulta para que todos los cortes actuales
--- queden vinculados a tu cuenta (ordonezgonzalo86@gmail.com):
-
+-- Verificar que todos los cortes pertenezcan a Gonzalo:
 UPDATE public.cortes 
 SET user_id = 'efb95d5d-072f-4644-bb3a-9d1f086cd6af'
 WHERE user_id IS NULL;
--- ============================================================

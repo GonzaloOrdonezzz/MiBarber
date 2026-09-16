@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { authService } from './auth';
 
 // Funciones de mapeo de base de datos Supabase a frontend
 function mapCorteFromDB(row) {
@@ -66,9 +67,11 @@ function getSemanaRange(fechaStr) {
 export const api = {
   // 1. Cortes
   async getCortes() {
+    const userId = authService.getCurrentUserId();
     const { data, error } = await supabase
       .from('cortes')
       .select('*')
+      .eq('user_id', userId)
       .order('fecha', { ascending: false })
       .order('hora', { ascending: false });
 
@@ -80,10 +83,12 @@ export const api = {
   },
 
   async getCorte(id) {
+    const userId = authService.getCurrentUserId();
     const { data, error } = await supabase
       .from('cortes')
       .select('*')
       .eq('id', id)
+      .eq('user_id', userId)
       .single();
 
     if (error) {
@@ -94,11 +99,13 @@ export const api = {
   },
 
   async getCortesPorFecha(fechaStr) {
+    const userId = authService.getCurrentUserId();
     const fecha = fechaStr || new Date().toISOString().split('T')[0];
     const { data, error } = await supabase
       .from('cortes')
       .select('*')
       .eq('fecha', fecha)
+      .eq('user_id', userId)
       .order('hora', { ascending: true });
 
     if (error) {
@@ -109,27 +116,9 @@ export const api = {
   },
 
   async crearCorte(corte) {
+    const userId = authService.getCurrentUserId();
     const hora = corte.hora ? (corte.hora.length === 5 ? corte.hora : corte.hora.substring(0, 5)) : '14:00';
     
-    // Obtener el usuario autenticado para asignar el corte a su cuenta
-    let currentUserId = null;
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      currentUserId = user?.id || null;
-    } catch (e) {
-      console.warn('No se pudo obtener el usuario actual de Supabase:', e);
-    }
-
-    if (!currentUserId) {
-      try {
-        const localSaved = localStorage.getItem('mibarber-user-session');
-        if (localSaved) {
-          const parsed = JSON.parse(localSaved);
-          currentUserId = parsed?.user?.id || null;
-        }
-      } catch (e) {}
-    }
-
     const payload = {
       cliente_nombre: corte.clienteNombre,
       fecha: corte.fecha,
@@ -137,38 +126,26 @@ export const api = {
       precio: Number(corte.precio || 0),
       estado_pago: corte.estadoPago || 'PENDIENTE',
       fecha_pago: corte.estadoPago === 'PAGADO' ? new Date().toISOString() : null,
+      user_id: userId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
 
-    if (currentUserId) {
-      payload.user_id = currentUserId;
-    }
-
-    let result = await supabase
+    const { data, error } = await supabase
       .from('cortes')
       .insert([payload])
       .select()
       .single();
 
-    // Si la tabla cortes aún no tiene la columna user_id en la base de datos, reintentar sin user_id
-    if (result.error && result.error.message?.includes('user_id')) {
-      delete payload.user_id;
-      result = await supabase
-        .from('cortes')
-        .insert([payload])
-        .select()
-        .single();
+    if (error) {
+      console.error('Error crearCorte:', error);
+      throw new Error(error.message || 'Error al crear corte en Supabase');
     }
-
-    if (result.error) {
-      console.error('Error crearCorte:', result.error);
-      throw new Error(result.error.message || 'Error al crear corte en Supabase');
-    }
-    return mapCorteFromDB(result.data);
+    return mapCorteFromDB(data);
   },
 
   async actualizarCorte(id, corte) {
+    const userId = authService.getCurrentUserId();
     const payload = mapCorteToDB(corte);
     payload.updated_at = new Date().toISOString();
 
@@ -176,6 +153,7 @@ export const api = {
       .from('cortes')
       .update(payload)
       .eq('id', id)
+      .eq('user_id', userId)
       .select()
       .single();
 
@@ -187,10 +165,12 @@ export const api = {
   },
 
   async eliminarCorte(id) {
+    const userId = authService.getCurrentUserId();
     const { error } = await supabase
       .from('cortes')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
     if (error) {
       console.error(`Error eliminarCorte ${id}:`, error);
@@ -201,6 +181,7 @@ export const api = {
 
   // 2. Pagos
   async cambiarEstadoPago(id, estadoPago) {
+    const userId = authService.getCurrentUserId();
     const payload = {
       estado_pago: estadoPago,
       fecha_pago: estadoPago === 'PAGADO' ? new Date().toISOString() : null,
@@ -211,6 +192,7 @@ export const api = {
       .from('cortes')
       .update(payload)
       .eq('id', id)
+      .eq('user_id', userId)
       .select()
       .single();
 
@@ -222,10 +204,12 @@ export const api = {
   },
 
   async getPendientes() {
+    const userId = authService.getCurrentUserId();
     const { data, error } = await supabase
       .from('cortes')
       .select('*')
       .eq('estado_pago', 'PENDIENTE')
+      .eq('user_id', userId)
       .order('fecha', { ascending: true })
       .order('hora', { ascending: true });
 
@@ -243,10 +227,12 @@ export const api = {
   },
 
   async getDeudores() {
+    const userId = authService.getCurrentUserId();
     const { data, error } = await supabase
       .from('cortes')
       .select('*')
       .eq('estado_pago', 'NO_PAGADO')
+      .eq('user_id', userId)
       .order('fecha', { ascending: false })
       .order('hora', { ascending: false });
 
@@ -258,10 +244,12 @@ export const api = {
   },
 
   async getPagados() {
+    const userId = authService.getCurrentUserId();
     const { data, error } = await supabase
       .from('cortes')
       .select('*')
       .eq('estado_pago', 'PAGADO')
+      .eq('user_id', userId)
       .order('fecha', { ascending: false })
       .order('hora', { ascending: false });
 
@@ -274,11 +262,13 @@ export const api = {
 
   // 3. Vista y Resumen Semanal
   async getResumenSemanal(fechaStr) {
+    const userId = authService.getCurrentUserId();
     const { fechaInicio, fechaFin } = getSemanaRange(fechaStr);
 
     const { data, error } = await supabase
       .from('cortes')
       .select('*')
+      .eq('user_id', userId)
       .gte('fecha', fechaInicio)
       .lte('fecha', fechaFin)
       .order('fecha', { ascending: true })
@@ -326,6 +316,7 @@ export const api = {
 
   // 4. Estadísticas
   async getEstadisticasMensuales(anio) {
+    const userId = authService.getCurrentUserId();
     const anioConsulta = anio || new Date().getFullYear();
     const inicioAnio = `${anioConsulta}-01-01`;
     const finAnio = `${anioConsulta}-12-31`;
@@ -333,6 +324,7 @@ export const api = {
     const { data, error } = await supabase
       .from('cortes')
       .select('*')
+      .eq('user_id', userId)
       .gte('fecha', inicioAnio)
       .lte('fecha', finAnio);
 
@@ -377,6 +369,7 @@ export const api = {
   },
 
   async getActividadAnual(anio) {
+    const userId = authService.getCurrentUserId();
     const anioConsulta = anio || new Date().getFullYear();
     const inicioAnio = `${anioConsulta}-01-01`;
     const finAnio = `${anioConsulta}-12-31`;
@@ -384,6 +377,7 @@ export const api = {
     const { data, error } = await supabase
       .from('cortes')
       .select('fecha')
+      .eq('user_id', userId)
       .gte('fecha', inicioAnio)
       .lte('fecha', finAnio);
 
@@ -409,9 +403,11 @@ export const api = {
 
   // 5. Totales
   async getTotales() {
+    const userId = authService.getCurrentUserId();
     const { data, error } = await supabase
       .from('cortes')
-      .select('precio, estado_pago, fecha');
+      .select('precio, estado_pago, fecha')
+      .eq('user_id', userId);
 
     if (error) {
       console.error('Error getTotales:', error);
