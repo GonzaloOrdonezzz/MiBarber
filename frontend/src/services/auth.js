@@ -1,44 +1,47 @@
 import { supabase } from './supabase';
 
-const GONZALO_USER = {
-  id: 'efb95d5d-072f-4644-bb3a-9d1f086cd6af',
-  email: 'ordonezgonzalo86@gmail.com',
-  user_metadata: {
-    nombre: 'Gonzalo'
-  }
-};
+const GONZALO_EMAIL = 'ordonezgonzalo86@gmail.com';
+const GONZALO_PASS = 'Gonza2014';
 
 export const authService = {
-  // 1. Obtener la sesión actual
+  // 1. Obtener la sesión real de Supabase
   async getSession() {
-    // A) Verificar sesión activa en Supabase Auth
+    // Limpiar cualquier token simulado viejo que haya quedado en localStorage
+    try {
+      const oldSession = localStorage.getItem('mibarber-user-session');
+      if (oldSession && oldSession.includes('session-gonzalo')) {
+        localStorage.removeItem('mibarber-user-session');
+      }
+    } catch (e) {}
+
+    // A) Verificar si Supabase ya tiene la sesión real guardada
     try {
       const { data, error } = await supabase.auth.getSession();
       if (!error && data?.session) {
         return data.session;
       }
     } catch (e) {
-      console.warn('Error comprobando sesión de Supabase Auth:', e);
+      console.warn('Error getSession Supabase:', e);
     }
 
-    // B) Verificar sesión local guardada
-    const localSaved = localStorage.getItem('mibarber-user-session');
-    if (localSaved) {
-      try {
-        const parsed = JSON.parse(localSaved);
-        if (parsed?.user) return parsed;
-      } catch (e) {}
-    }
-
-    // C) Si nunca cerró sesión explícitamente, inicializar con la cuenta de Gonzalo
+    // B) Si no hay sesión activa y no se cerró sesión explícitamente,
+    // iniciar sesión real con Supabase para obtener el JWT auténtico:
     const hasLoggedOut = localStorage.getItem('mibarber-logged-out');
     if (!hasLoggedOut) {
-      const defaultSession = {
-        access_token: 'session-gonzalo',
-        user: GONZALO_USER
-      };
-      localStorage.setItem('mibarber-user-session', JSON.stringify(defaultSession));
-      return defaultSession;
+      try {
+        console.log('Iniciando sesión real en Supabase para Gonzalo...');
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: GONZALO_EMAIL,
+          password: GONZALO_PASS
+        });
+
+        if (!error && data?.session) {
+          console.log('Sesión real de Supabase obtenida con éxito!');
+          return data.session;
+        }
+      } catch (err) {
+        console.error('Error auto-signin Supabase:', err);
+      }
     }
 
     return null;
@@ -53,67 +56,24 @@ export const authService = {
   // 3. Iniciar sesión con email y contraseña
   async signIn(email, password) {
     const trimmedEmail = email.trim();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
+      password
+    });
 
-    // Si son las credenciales de Gonzalo, permitir acceso garantizado
-    const isGonzalo = trimmedEmail.toLowerCase() === 'ordonezgonzalo86@gmail.com';
-    const isGonzaloPass = password === 'Gonza2014';
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: trimmedEmail,
-        password
-      });
-
-      if (!error && data?.session) {
-        localStorage.removeItem('mibarber-logged-out');
-        localStorage.setItem('mibarber-user-session', JSON.stringify(data.session));
-        return data;
-      }
-
-      if (error && !error.message?.toLowerCase().includes('fetch')) {
-        // Si no es fallo de red pero son las credenciales de Gonzalo
-        if (isGonzalo && isGonzaloPass) {
-          const session = {
-            access_token: 'session-gonzalo',
-            user: GONZALO_USER
-          };
-          localStorage.removeItem('mibarber-logged-out');
-          localStorage.setItem('mibarber-user-session', JSON.stringify(session));
-          return { session, user: session.user };
-        }
-        throw new Error(translateAuthError(error.message));
-      }
-    } catch (err) {
-      // Si el navegador bloqueó la conexión por Failed to fetch o similar
-      if (isGonzalo && isGonzaloPass) {
-        const session = {
-          access_token: 'session-gonzalo',
-          user: GONZALO_USER
-        };
-        localStorage.removeItem('mibarber-logged-out');
-        localStorage.setItem('mibarber-user-session', JSON.stringify(session));
-        return { session, user: session.user };
-      }
-      throw new Error(translateAuthError(err.message));
+    if (error) {
+      throw new Error(translateAuthError(error.message));
     }
 
-    if (isGonzalo && isGonzaloPass) {
-      const session = {
-        access_token: 'session-gonzalo',
-        user: GONZALO_USER
-      };
-      localStorage.removeItem('mibarber-logged-out');
-      localStorage.setItem('mibarber-user-session', JSON.stringify(session));
-      return { session, user: session.user };
-    }
-
-    throw new Error('Correo electrónico o contraseña incorrectos.');
+    localStorage.removeItem('mibarber-logged-out');
+    return data;
   },
 
   // 4. Registro de nuevo usuario (Barbero)
   async signUp(email, password, nombre = '') {
     const trimmedEmail = email.trim();
-    if (trimmedEmail.toLowerCase() === 'ordonezgonzalo86@gmail.com') {
+    // Si es el usuario de Gonzalo, hacer login directo
+    if (trimmedEmail.toLowerCase() === GONZALO_EMAIL.toLowerCase()) {
       return this.signIn(email, password);
     }
 
@@ -127,12 +87,13 @@ export const authService = {
           }
         }
       });
+
       if (error) {
         throw new Error(translateAuthError(error.message));
       }
+
       if (data?.session) {
         localStorage.removeItem('mibarber-logged-out');
-        localStorage.setItem('mibarber-user-session', JSON.stringify(data.session));
       }
       return data;
     } catch (err) {
