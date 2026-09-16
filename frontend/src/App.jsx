@@ -21,9 +21,12 @@ import {
   Check,
   BarChart3,
   Award,
-  Activity
+  Activity,
+  LogOut
 } from 'lucide-react';
 import { api } from './services/api';
+import { authService } from './services/auth';
+import Auth from './components/Auth';
 
 // Horas disponibles (07 a 22 hs) y minutos en saltos de 10 min
 const HORAS = Array.from({ length: 16 }, (_, i) => String(i + 7).padStart(2, '0'));
@@ -31,6 +34,11 @@ const MINUTOS = ['00', '10', '20', '30', '40', '50'];
 const MESES_ABR = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
 export default function App() {
+  // Estado de Autenticación (Supabase Auth)
+  const [session, setSession] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   const [activeTab, setActiveTab] = useState('semana'); // 'semana' | 'pagos' | 'estadisticas'
   const [currentDate, setCurrentDate] = useState(new Date());
   
@@ -49,6 +57,42 @@ export default function App() {
   const toggleTheme = () => {
     setTheme((prevTheme) => (prevTheme === 'dark' ? 'light' : 'dark'));
   };
+
+  // Inicialización y escucha de la sesión de Supabase
+  useEffect(() => {
+    authService.getSession()
+      .then((sess) => {
+        setSession(sess);
+        setCurrentUser(sess?.user || null);
+        setAuthLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error al inicializar sesión:', err);
+        setAuthLoading(false);
+      });
+
+    const { data: { subscription } } = authService.onAuthStateChange((_event, sess) => {
+      setSession(sess);
+      setCurrentUser(sess?.user || null);
+      setAuthLoading(false);
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  // Manejador de Cerrar Sesión
+  const handleLogout = async () => {
+    try {
+      await authService.signOut();
+      setSession(null);
+      setCurrentUser(null);
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err);
+    }
+  };
+
 
   // Datos Semanales
   const [resumenSemanal, setResumenSemanal] = useState({
@@ -232,6 +276,7 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (!session) return;
     if (activeTab === 'semana') {
       cargarDatosSemana(currentDate);
       cargarCortesDia(fechaSeleccionada);
@@ -240,7 +285,7 @@ export default function App() {
     } else if (activeTab === 'estadisticas') {
       cargarEstadisticas(anioSeleccionado);
     }
-  }, [activeTab, currentDate, filtroPago, anioSeleccionado, fechaSeleccionada]);
+  }, [session, activeTab, currentDate, filtroPago, anioSeleccionado, fechaSeleccionada]);
 
   // Generación de celdas para el Calendario Heatmap de 52-53 semanas (CSS Grid)
   const mapaActividad = useMemo(() => {
@@ -1074,6 +1119,30 @@ export default function App() {
     );
   };
 
+  // Pantalla de carga mientras se verifica la sesión en Supabase
+  if (authLoading) {
+    return (
+      <div className="auth-loading-screen">
+        <div className="auth-loading-spinner"></div>
+        <p className="auth-loading-text">Cargando MiBarber...</p>
+      </div>
+    );
+  }
+
+  // Si no hay sesión activa, mostrar pantalla de Login / Registro
+  if (!session) {
+    return (
+      <Auth 
+        onLoginSuccess={(sess) => {
+          setSession(sess);
+          setCurrentUser(sess.user);
+        }}
+        theme={theme}
+        toggleTheme={toggleTheme}
+      />
+    );
+  }
+
   return (
     <div className="app-container">
       {/* Header con marca MiBarber y selector de tema */}
@@ -1114,24 +1183,46 @@ export default function App() {
             </button>
           </nav>
 
-          {/* Theme Switcher Button */}
-          <button 
-            className="theme-toggle-btn"
-            onClick={toggleTheme}
-            title={theme === 'dark' ? 'Cambiar a Modo Claro (Ivory)' : 'Cambiar a Modo Noche (Espresso)'}
-          >
-            {theme === 'dark' ? (
-              <>
-                <Sun size={17} color="var(--accent-color)" />
-                <span>Claro</span>
-              </>
-            ) : (
-              <>
-                <Moon size={17} color="var(--accent-color)" />
-                <span>Noche</span>
-              </>
-            )}
-          </button>
+          <div className="header-actions-group">
+            {/* Indicador de Usuario */}
+            <div className="user-profile-badge" title={currentUser?.email || 'Usuario conectado'}>
+              <div className="user-avatar">
+                {(currentUser?.user_metadata?.nombre || currentUser?.email || 'B').charAt(0).toUpperCase()}
+              </div>
+              <span className="user-email-text">
+                {currentUser?.user_metadata?.nombre || currentUser?.email?.split('@')[0] || 'Barbero'}
+              </span>
+            </div>
+
+            {/* Theme Switcher Button */}
+            <button 
+              className="theme-toggle-btn"
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Cambiar a Modo Claro (Ivory)' : 'Cambiar a Modo Noche (Espresso)'}
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun size={17} color="var(--accent-color)" />
+                  <span>Claro</span>
+                </>
+              ) : (
+                <>
+                  <Moon size={17} color="var(--accent-color)" />
+                  <span>Noche</span>
+                </>
+              )}
+            </button>
+
+            {/* Botón Cerrar Sesión */}
+            <button 
+              className="btn-logout"
+              onClick={handleLogout}
+              title="Cerrar sesión"
+            >
+              <LogOut size={16} />
+              <span>Salir</span>
+            </button>
+          </div>
         </div>
       </header>
 

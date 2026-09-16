@@ -6,6 +6,7 @@
 -- 1. Crear tabla de cortes
 CREATE TABLE IF NOT EXISTS public.cortes (
     id BIGSERIAL PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
     cliente_nombre VARCHAR(255) NOT NULL,
     fecha DATE NOT NULL,
     hora VARCHAR(10) NOT NULL,
@@ -17,29 +18,33 @@ CREATE TABLE IF NOT EXISTS public.cortes (
 );
 
 -- 2. Índices para consultas rápidas
+CREATE INDEX IF NOT EXISTS idx_cortes_user_id ON public.cortes (user_id);
 CREATE INDEX IF NOT EXISTS idx_cortes_fecha ON public.cortes (fecha);
 CREATE INDEX IF NOT EXISTS idx_cortes_estado_pago ON public.cortes (estado_pago);
 
 -- 3. Habilitar Row Level Security (RLS)
 ALTER TABLE public.cortes ENABLE ROW LEVEL SECURITY;
 
--- 4. Políticas de acceso (Lectura, Inserción, Actualización y Eliminación para la app)
-CREATE POLICY "Permitir lectura publica de cortes" 
+-- 4. Políticas de acceso seguras por usuario autenticado (Supabase Auth)
+CREATE POLICY "Usuarios ven sus propios cortes" 
 ON public.cortes FOR SELECT 
-TO public 
-USING (true);
+TO authenticated 
+USING (auth.uid() = user_id);
 
-CREATE POLICY "Permitir creacion publica de cortes" 
+CREATE POLICY "Usuarios crean sus propios cortes" 
 ON public.cortes FOR INSERT 
-TO public 
-WITH CHECK (true);
+TO authenticated 
+WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Permitir actualizacion publica de cortes" 
+CREATE POLICY "Usuarios actualizan sus propios cortes" 
 ON public.cortes FOR UPDATE 
-TO public 
-USING (true);
+TO authenticated 
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Permitir eliminacion publica de cortes" 
+-- Solo eliminar cortes propios
+CREATE POLICY "Usuarios eliminan sus propios cortes" 
 ON public.cortes FOR DELETE 
-TO public 
-USING (true);
+TO authenticated 
+USING (auth.uid() = user_id);
+

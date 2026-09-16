@@ -51,7 +51,14 @@ La aplicación cuenta con un selector de temas elegante basado en tonos cálidos
   - 10% generado en cada mes.
   - Monto pendiente de cobro.
 
+### 4. 🔐 Multi-usuario y Privacidad (Supabase Auth)
+- **Cuentas independientes por barbero:** Registro e Inicio de sesión con Email y Contraseña.
+- **Aislamiento total con Row Level Security (RLS):** Cada barbero tiene su propia base de turnos, ingresos, deudas y métricas 100% privadas.
+- **Indicador de perfil en cabecera:** Muestra avatar y correo/nombre del barbero activo con botón para Cerrar Sesión.
+- **Persistencia de sesión:** Mantiene la sesión abierta entre visitas y refrescos de página.
+
 ---
+
 
 ## 🚀 Cómo Iniciar la Aplicación
 

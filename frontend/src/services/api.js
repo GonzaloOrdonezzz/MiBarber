@@ -11,6 +11,7 @@ function mapCorteFromDB(row) {
     precio: Number(row.precio || 0),
     estadoPago: row.estado_pago || 'PENDIENTE',
     fechaPago: row.fecha_pago,
+    userId: row.user_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -109,6 +110,16 @@ export const api = {
 
   async crearCorte(corte) {
     const hora = corte.hora ? (corte.hora.length === 5 ? corte.hora : corte.hora.substring(0, 5)) : '14:00';
+    
+    // Obtener el usuario autenticado para asignar el corte a su cuenta
+    let currentUserId = null;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      currentUserId = user?.id || null;
+    } catch (e) {
+      console.warn('No se pudo obtener el usuario actual:', e);
+    }
+
     const payload = {
       cliente_nombre: corte.clienteNombre,
       fecha: corte.fecha,
@@ -119,6 +130,10 @@ export const api = {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
+
+    if (currentUserId) {
+      payload.user_id = currentUserId;
+    }
 
     const { data, error } = await supabase
       .from('cortes')
